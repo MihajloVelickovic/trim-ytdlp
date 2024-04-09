@@ -72,7 +72,6 @@ int main(int argc, char** argv){
 		for(int i=2; i<argc; ++i)
 			bulk_trim(argv[i]);
 	
-
 	else if(strcmp(argv[1], "-f") == 0)
 		for(int i=2; i<argc; ++i)
 			trim(argv[i], NULL);
