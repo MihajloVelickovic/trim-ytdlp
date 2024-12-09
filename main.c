@@ -5,14 +5,14 @@
 #include <sys/stat.h>
 #include <stdlib.h>
 
-int find_in(char** list, int size, char* element){
+int find_in(char** list, const int size, const char* element){
 	for(int i=0; i<size; ++i)
 		if(strcmp(list[i], element) == 0)
 			return i;
 	return -1;
 }
 
-void trim(char* filename, int* dirfd, char* newname){
+void trim(char* filename, const int* dirfd, const char* newname, int* enumerator){
 	char* begin = strstr(filename, " [");
 	char* end = strstr(filename, "].");
 	if(!begin || !end) {
@@ -20,26 +20,38 @@ void trim(char* filename, int* dirfd, char* newname){
 		return;
 	}
 	++end;
-	char* newstr;
+	char* new_str;
 	if (!newname) {
-		newstr = (char*) malloc ((strlen(filename) + 1) * sizeof(char));
-		strcpy(newstr, filename);
+		new_str = (char*) malloc ((strlen(filename) + 1) * sizeof(char));
+		strcpy(new_str, filename);
 		int pos = begin - filename;
-		newstr[pos] = '\0';
-		strcat(newstr, end);
+		new_str[pos] = '\0';
+		strcat(new_str, end);
 	}
 	else{
-		newstr = (char*) malloc ((strlen(newname) + 1) * sizeof(char));
-		strcpy(newstr, newname);
-		strcat(newstr, end);
+		if (enumerator) {
+			char num_string[(int)(ceil(log10(*enumerator)+1)*sizeof(char))];
+			sprintf(num_string, "%d", *enumerator);
+			new_str = (char*) malloc ((strlen(newname) + strlen(num_string) + strlen(end) + 3 ) * sizeof(char));
+			strcpy(new_str, num_string);
+			strcat(new_str, ". ");
+			strcat(new_str, newname);
+			strcat(new_str, end);
+			++(*enumerator);
+		}
+		else {
+			new_str = (char*) malloc ((strlen(newname) + strlen(end) + 1) * sizeof(char));
+			strcpy(new_str, newname);
+			strcat(new_str, end);
+		}
 	}
-	printf("Renaming %s to %s\n", filename, newstr);
-	dirfd ? renameat(*dirfd, filename, *dirfd, newstr) : rename(filename, newstr);
-	free(newstr);
+	printf("Renaming %s to %s\n", filename, new_str);
+	dirfd ? renameat(*dirfd, filename, *dirfd, new_str) : rename(filename, new_str);
+	free(new_str);
 	
 }
 
-void bulk_trim(const char* path, char* newname){
+void bulk_trim(const char* path, const char* newname){
 	
 	DIR* dir;
 	if(!(dir = opendir(path))){
@@ -67,23 +79,7 @@ void bulk_trim(const char* path, char* newname){
 		if(!S_ISREG(stats.st_mode))
 			continue;
 
-		char num_string[(int)(ceil(log10(counter)+1)*sizeof(char))];
-		sprintf(num_string, "%d", counter);
-		char* newstr;
-		char need_free = 0;
-		if (!newname)
-			newstr = newname;
-		else {
-			newstr = (char*) malloc(strlen(newname) + strlen(num_string) + 3);
-			need_free = 1;
-			strcpy(newstr, num_string);
-			strcat(newstr, ". ");
-			strcat(newstr, newname);
-		}
-		trim(dir_entry->d_name, &dir_fd, newstr);
-		if (need_free > 0)
-			free(newstr);
-		++counter;
+		trim(dir_entry->d_name, &dir_fd, newname, &counter);
 
 	}
 
@@ -119,14 +115,17 @@ int main(int argc, char** argv){
 	else if((find_retval = find_in(argv, argc, "-f")) > 0){
 		int lower_limit = find_retval + 1,
 			upper_limit = argc;
-		if(name){
+		if(name) {
 			if(name_retval > find_retval)
 				upper_limit = name_retval;
 			else
 				lower_limit = name_retval + 3;
 		}
+		int diff = upper_limit - lower_limit;
+		int* sender = diff > 1 ? &diff : NULL;
+		diff = 1;
 		for(int i=lower_limit; i<upper_limit; ++i)
-			trim(argv[i], NULL, name);
+			trim(argv[i], NULL, name, sender);
 	}
 	else{
 		fprintf(stderr, "Invalid configuration: use -d to bulk rename"
