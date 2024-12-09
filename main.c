@@ -22,7 +22,7 @@ void trim(char* filename, const int* dirfd, const char* newname, int* enumerator
 	++end;
 	char* new_str;
 	if (!newname) {
-		new_str = (char*) malloc ((strlen(filename) + 1) * sizeof(char));
+		new_str = (char*) malloc ((strlen(filename) + 1) * sizeof *new_str);
 		strcpy(new_str, filename);
 		int pos = begin - filename;
 		new_str[pos] = '\0';
@@ -30,9 +30,9 @@ void trim(char* filename, const int* dirfd, const char* newname, int* enumerator
 	}
 	else{
 		if (enumerator) {
-			char num_string[(int)(ceil(log10(*enumerator)+1)*sizeof(char))];
+			char num_string[(int)(ceil(log10(*enumerator) + 1))];
 			sprintf(num_string, "%d", *enumerator);
-			new_str = (char*) malloc ((strlen(newname) + strlen(num_string) + strlen(end) + 3 ) * sizeof(char));
+			new_str = (char*) malloc ((strlen(newname) + strlen(num_string) + strlen(end) + 3 ) * sizeof *new_str);
 			strcpy(new_str, num_string);
 			strcat(new_str, ". ");
 			strcat(new_str, newname);
@@ -40,7 +40,7 @@ void trim(char* filename, const int* dirfd, const char* newname, int* enumerator
 			++(*enumerator);
 		}
 		else {
-			new_str = (char*) malloc ((strlen(newname) + strlen(end) + 1) * sizeof(char));
+			new_str = (char*) malloc ((strlen(newname) + strlen(end) + 1) * sizeof *new_str);
 			strcpy(new_str, newname);
 			strcat(new_str, end);
 		}
@@ -122,8 +122,8 @@ int main(int argc, char** argv){
 				lower_limit = name_retval + 3;
 		}
 		int diff = upper_limit - lower_limit;
-		int* sender = diff > 1 ? &diff : NULL;
-		diff = 1;
+		int counter = 1;
+		int* sender = diff > 1 ? &counter : NULL;
 		for(int i=lower_limit; i<upper_limit; ++i)
 			trim(argv[i], NULL, name, sender);
 	}
